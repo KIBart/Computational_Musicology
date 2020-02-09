@@ -35,7 +35,7 @@ It would be interesting to use live recordings of the artists because this is wh
 | Tempo           | 125.6122  | 27.11775           | 187.852 | 48.172  |
 | Energy          | 0.6705746 | 0.2272377          | 0.981   | 0.0376  |
 
-!<img src="Rplot_srv.png" width="600">
+<img src="Rplot_srv.png" width="600">
 
 ###### John Mayer features
 
