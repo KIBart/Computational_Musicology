@@ -18,6 +18,7 @@ By summarizing the data we can already interpret some of the data. Because Jimi 
 It would be interesting to use live recordings of the artists because this is where the playing styles could be compared even better. Especially with John Mayer, the tracks are sometimes not very representative for the artist's playing style. I suspect that with live performances the character and influences of someones playing are captured better than on studio recordings. It will be interesting to investigate these suspicions in the coming weeks. 
 
 ###### Jimi Hendrix features
+
 |                 | Mean      | Standard Deviation | Maximum | Minimum |
 |-----------------|-----------|--------------------|---------|---------|
 | Instrumentalism | 0.2077483 | 0.276285           | 0.938   | 0       |
@@ -27,6 +28,7 @@ It would be interesting to use live recordings of the artists because this is wh
 <img src="Rplot_jimi.png" width="600">
 
 ###### Stevie Ray Vaughan features
+
 |                 | Mean      | Standard Deviation | Maximum | Minimum |
 |-----------------|-----------|--------------------|---------|---------|
 | Instrumentalism | 0.2916942 | 0.3131774          | 0.975   | 0       |
@@ -36,6 +38,7 @@ It would be interesting to use live recordings of the artists because this is wh
 !<img src="Rplot_srv.png" width="600">
 
 ###### John Mayer features
+
 |                 | Mean       | Standard Deviation | Maximum | Minimum |
 |-----------------|------------|--------------------|---------|---------|
 | Instrumentalism | 0.05719752 | 0.1656013          | 0.935   | 0       |
