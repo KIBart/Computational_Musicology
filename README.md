@@ -2,7 +2,15 @@
 ##### By: Bart de Rooij
 ##### Student Number: 11883138
 
-##Week 2
+## Week 2
+This week I tried visualizing some more data. I decided to use valence and energy to use as data because both of these features combine different features of spotify into one variable. <br><br>
+In addition, the size of each data point is decided by the danceability and a colour is added to signal if a track is only instrumental. <br><br>
+Since last week I changed my corpus. The playlists now contain only live performances of the artist to better compare their styles. Over the coming week I want to investigate the corpus a little more to ensure this is the most representable corpus.
+
+<img src="valence_energy.png" width="800">
+
+
+<img src="per_key.png" width="800">
 
 
 
