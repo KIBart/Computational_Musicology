@@ -5,12 +5,14 @@
 ## Week 2
 This week I tried visualizing some more data. I decided to use valence and energy to use as data because both of these features combine different features of spotify into one variable. <br><br>
 In addition, the size of each data point is decided by the danceability and a colour is added to signal if a track is only instrumental. <br><br>
-Since last week I changed my corpus. The playlists now contain only live performances of the artist to better compare their styles. Over the coming week I want to investigate the corpus a little more to ensure this is the most representable corpus.
+Since last week I changed my corpus. The playlists now contain only live performances of the artist to better compare their styles. Over the coming week I want to investigate the corpus a little more to ensure this is the most representable corpus. <br><br>
+The scatter plot below shows some similarity between Hendrix and Stevie Ray Vaughan with repect to energy and valence and danceability. We can see that the Mayer plot has the most danceable tracks and that the bulk of the data is in the middle of the plot. Another thing that is noticeable, is that Jimi Hendrix and Stevie Ray Vaughan have a lot more instrumental songs. <br>
+Similar songs and covers of these songs give similar valence and energy results (Lenny, Voodoo Child, Wait Until Tomorrow).
 
-<img src="valence_energy.png" width="800">
-
-
-<img src="per_key.png" width="800">
+<img src="valence_energy.png" width="1000">
+<br>
+The plot below shows the percentage of songs in each key per artist. We see that Jimi Hendrix and Stevie Ray Vaughan have almost the same distribution of keys. <br>
+<img src="per_key.png" width="1000">
 
 
 
