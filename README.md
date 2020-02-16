@@ -2,6 +2,11 @@
 ##### By: Bart de Rooij
 ##### Student Number: 11883138
 
+##Week 2
+
+
+
+## Week 1
 ### Comparing "Jimi Hendrix Copy Cats"
 A lot of the times people compare guitarists to what they deem the greatest guitarist of all time and often this guitarist is Jimi Hendrix. Hendrix was an innovative guitarist who changed the musical landscape forever with his unique style of playing. With such a huge legacy and influence it is no surprise that people wanted to emulate his style. <br>
 Sometimes this emulating goes a bit far and people accuse others of actually copying Hendrix' style. For this project I wanted to take a closer look at some of these so-called "copy cats" to see if these statements have some truth to them. I have chosen to examine Stevie Ray Vaughan and John Mayer as they often get compared to Jimi Hendrix. <br> <br>
