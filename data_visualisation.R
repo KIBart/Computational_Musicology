@@ -6,8 +6,8 @@ library(spotifyr)
 library(ggplot2)
 
 # Set Spotify access variables (every time)
-Sys.setenv(SPOTIFY_CLIENT_ID = 'X')
-Sys.setenv(SPOTIFY_CLIENT_SECRET = 'Y')
+Sys.setenv(SPOTIFY_CLIENT_ID = '29b7536b5f6f4f21a1e9075195a34105')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = 'e5d4ec6492a44dbf808852fb35d36923')
 
 hendrix <- get_playlist_audio_features('bartderooij2009', '5HDlUKMqBToiJdBpMbRQtM')
 srv <- get_playlist_audio_features('bartderooij2009', '4QXGoJ3i6ThCBw4b7DOZ8j')

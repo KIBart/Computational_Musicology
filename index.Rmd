@@ -1,0 +1,242 @@
+---
+title: "Researching Musical Copycats"
+author: "Bart de Rooij"
+date: "23 February 2020"
+output: 
+  flexdashboard::flex_dashboard:
+    storyboard: true
+    theme: lumen
+---
+
+```{r setup}
+# In order to use these packages, we need to install flexdashboard, plotly, and Cairo.
+library(tidyverse)
+library(ggplot2)
+library(spotifyr)
+library(tidyverse)
+library(flexdashboard)
+library(compmus)
+#source('spotify.R')
+```
+
+### Introduction: Musical Copycats {data-commentary-width=400}
+<h1> What is this project about? </h1>
+A lot of the times people compare guitarists to what they deem the greatest guitarist of all time and often this guitarist is Jimi Hendrix. Hendrix was an innovative guitarist who changed the musical landscape forever with his unique style of playing. With such a huge legacy and influence it is no surprise that people wanted to emulate his style. <br>
+Sometimes this emulating goes a bit far and people accuse others of actually copying Hendrix' style. For this project I wanted to take a closer look at some of these so-called "copy cats" to see if these statements have some truth to them. I have chosen to examine Stevie Ray Vaughan and John Mayer as they often get compared to Jimi Hendrix. <br> <br>
+
+The main question for this project will be: <br>
+*How similar are "copy cats of Jimi Hendrix" (such as Stevie Ray Vaughan and John Mayer) to Jimi Hendrix himself?*
+
+```{r echo = FALSE}
+# Set Spotify access variables (every time)
+Sys.setenv(SPOTIFY_CLIENT_ID = '29b7536b5f6f4f21a1e9075195a34105')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = 'e5d4ec6492a44dbf808852fb35d36923')
+```
+
+<h1> Datasets </h1>
+To compare these different artist and their playing style, live performances were gathered and put into spotify playlists. The numbers of songs for Jimi Hendrix, John Mayer and Stevie Ray Vaughan are 158, 92 and 116 respectively. The code below shows how these playlist were than put together. These playlist represent the artist live perfomance playing styles and should be sufficient to compare the artist to eachother.
+
+```{r echo = TRUE}
+hendrix <- get_playlist_audio_features('bartderooij2009', '5HDlUKMqBToiJdBpMbRQtM')
+srv <- get_playlist_audio_features('bartderooij2009', '4QXGoJ3i6ThCBw4b7DOZ8j')
+mayer <- get_playlist_audio_features('bartderooij2009', '5OsbIHtbhXQ7FBNDN1HblL')
+
+live_performances <-
+  hendrix %>% mutate(playlist = "Jimi Hendrix") %>%
+  bind_rows(srv %>% mutate(playlist = "Stevie Ray Vaughan")) %>%
+  bind_rows(mayer %>% mutate(playlist = "John Mayer"))
+```
+
+***
+
+I wanted to show the amount of songs in each playlist but I could not render the value boxes for some reason. (I added the code so it is at least clear what I tried to do here)
+
+```{r , echo=TRUE}
+counts <- live_performances %>%
+group_by(playlist) %>% 
+  summarize(
+    count = n())
+
+valueBox(value=filter(counts, playlist == "Jimi Hendrix")[2], 
+         caption='live performances by Jimi Hendrix', 
+         icon = "musical-notes-outline")
+
+valueBox(value=filter(counts, playlist == "John Mayer")[2], 
+         caption="live performances by John Mayer", 
+         icon = "fa-musical-notes-outline")
+
+valueBox(value=filter(counts, playlist == "Stevie Ray Vaughan")[2], 
+         caption = "live performances by Stevie Ray Vaughan", 
+         icon = "fa-musical-notes-outline")
+```
+
+
+### Comparison between Jimi Hendrix, Stevie Ray Vaughan and John Mayer
+
+```{r}
+# Some labels for specific songs
+live_labels <-
+  tibble(
+    label = c("Voodoo Child\n (Slight Return)", "Voodoo Child\n (Slight Return)", "Wait Untill \nTomorrow", "Lenny", "Lenny"),
+    playlist = c("Jimi Hendrix", "Stevie Ray Vaughan", "John Mayer", "Stevie Ray Vaughan", "John Mayer"),
+    valence = c(0.695, 0.351, 0.738,0.274 , 0.352),
+    energy = c(0.645, 0.784, 0.908,0.248 , 0.315),
+  )
+
+scatter <- live_performances %>%
+  mutate(instrumentalness = ifelse(instrumentalness >= 0.5, 'No Vocals', 'With Vocals')) %>%
+  ggplot(aes(x = valence, y = energy, fill = instrumentalness, size = danceability)) +
+  geom_jitter(alpha = 0.45, shape = 21, color = "gray") +
+  geom_text(                   # Add text labels from above.
+    aes(
+      x = valence,
+      y = energy,
+      label = label),
+    colour = "black",        # Override colour (not mode here).
+    size = 3,                # Override size (not loudness here).
+    data = live_labels,     # Specify the data source for labels.
+    hjust = "left",          # Align left side of label with the point.
+    vjust = "bottom",        # Align bottom of label with the point.
+    nudge_x = -0.05,         # Nudge the label slightly left.
+    nudge_y = 0.02,           # Nudge the label slightly up.
+    inherit.aes = FALSE
+  ) +
+  facet_wrap(~ playlist) +
+  theme_linedraw() +
+  scale_x_continuous(          # Fine-tune the x axis.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),  # Use grid-lines for quadrants only.
+    minor_breaks = NULL      # Remove 'minor' grid-lines.
+  ) +
+  scale_y_continuous(          # Fine-tune the y axis in the same way.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),
+    minor_breaks = NULL
+  ) +
+  scale_size_continuous(       # Fine-tune the sizes of each point.
+    trans = "identity",           # Use an exp transformation to emphasise loud.
+    guide = "none"           # Remove the legend for size.
+  ) +
+  scale_fill_manual(values = c("#d9324b", "#42e375"), name= "Vocals") +
+  labs(                        # Make the titles nice.
+    x = "Valence",
+    y = "Energy",
+    fill = "Vocals"
+  )
+
+bar <- live_performances %>%
+group_by(playlist, key_name) %>% 
+  summarize(
+    count = n()) %>%
+  mutate(count = ifelse(playlist == "Jimi Hendrix", count/158*100,
+                    ifelse(playlist == "Stevie Ray Vaughan", count/116*100,
+                    ifelse(playlist == "John Mayer", count/92 * 100, "no")))) %>%
+  ggplot(aes(x = key_name, y = count, fill = playlist)) +
+  geom_col(position = position_dodge(width = 0.6), alpha = 0.6, width = 1.2) +
+  ggtitle("Percentage of songs per key") +
+  labs(                        # Make the titles nice.
+    x = "Key Signature",
+    y = "Percentage %",
+    fill = "Artist"
+  ) +
+  theme_light() +
+  scale_y_continuous(          # Fine-tune the y axis in the same way.
+    limits = c(0, 26),
+    breaks = c(0, 5, 10, 15, 20, 25),
+    minor_breaks = NULL
+  ) +
+  scale_fill_brewer(type = "qual", palette = "Paired")
+```
+<div>
+<h3> Full data set </h3>
+For comparing the full data set, the valence and energy are plotted against eachother. The size of the dots is represented by the danceability of the tracks. The plot can be seen below.
+
+```{r, fig.width=15, fig.height=8}
+scatter
+```
+</div>
+
+
+<div>
+<h3> Key Comparisons </h3>
+Each track by spotify has a key signature assigned to it. When the number of songs for each key signature is counted, the following plot is created.
+
+
+```{r, fig.width=15, fig.height=8}
+bar
+```
+</div>
+
+<div>
+<h3> Comparing individual performances </h3>
+It is also important to inspect individual performances of the artist to compare them. In this section a performance of Jimi Hendrix and a performance of Stevie Ray Vaughan of Voodoo Child (Slight Return) is compared by their pitches. The same was done below that for a performance of Lenny by John Mayer and Stevie Ray Vaughan.
+
+```{r}
+                                                                                         voodoo_hendrix <- 
+                                                                                           get_tidy_audio_analysis('4HgTw7wN3mhX8nZOOLVLoO') %>% 
+                                                                                           select(segments) %>% unnest(segments) %>% 
+                                                                                           select(start, duration, pitches)
+
+   voodoo_srv <- 
+                                                                                           get_tidy_audio_analysis('0vEtfYh0hj9XDRs3QAAhIT') %>% 
+                                                                                           select(segments) %>% unnest(segments) %>% 
+                                                                                           select(start, duration, pitches)
+   
+   lenny_srv <- 
+                                                                                           get_tidy_audio_analysis('0L3jwveF4FBMhzseOHyDyh') %>% 
+                                                                                           select(segments) %>% unnest(segments) %>% 
+                                                                                           select(start, duration, pitches)
+   
+   lenny_mayer <- 
+                                                                                           get_tidy_audio_analysis('2auWdKsT2wvdGIXjxBYvpS') %>% 
+                                                                                           select(segments) %>% unnest(segments) %>% 
+                                                                                           select(start, duration, pitches)
+
+
+                                                                                
+```
+```{r, fig.width=15, fig.height=8}
+compmus_long_distance(
+  voodoo_hendrix %>% mutate(pitches = map(pitches, compmus_normalise, 'chebyshev')),
+  voodoo_srv %>% mutate(pitches = map(pitches, compmus_normalise, 'chebyshev')),
+  feature = pitches,
+  method = 'euclidean') %>% 
+  ggplot(mapping = 
+    aes(
+      x = (xstart + xduration / 2), 
+      width = xduration,
+      y = (ystart + yduration / 2),
+      height = yduration,
+      fill = d)) + 
+  geom_tile() +
+  scale_fill_continuous(type = 'viridis', guide = 'none') +
+  labs(x = 'Jimi Hendrix',
+       y = 'Stevie Ray Vaughan', title = "Voodoo Child (Slight Return) comparion")
+```
+```{r, fig.width=15, fig.height=8}
+compmus_long_distance(
+  lenny_mayer %>% mutate(pitches = map(pitches, compmus_normalise, 'chebyshev')),
+  lenny_srv %>% mutate(pitches = map(pitches, compmus_normalise, 'chebyshev')),
+  feature = pitches,
+  method = 'euclidean') %>% 
+  ggplot(mapping = 
+    aes(
+      x = (xstart + xduration / 2), 
+      width = xduration,
+      y = (ystart + yduration / 2),
+      height = yduration,
+      fill = d)) + 
+  geom_tile() +
+  scale_fill_continuous(type = 'viridis', guide = 'none') +
+  labs(x = 'John Mayer',
+       y = 'Stevie Ray Vaughan', title = "Lenny Comparison")
+```
+
+</div>
+
+### Discussion
+From these minimal comparisons it is still hard to draw conclusions because more research needs to be done. This section will discuss the plots in short. <br><br>
+
+From the plots we can see that the Mayer plot has the most danceable tracks and that the bulk of the data is in the middle of the plot. Another thing that is noticeable, is that Jimi Hendrix and Stevie Ray Vaughan have a lot more instrumental songs. <br>
+Similar songs and covers of these songs give similar valence and energy results (Lenny, Voodoo Child, Wait Until Tomorrow).<br>
+From the key signature plot we see that Jimi Hendrix and Stevie Ray Vaughan have a similar distribution of key signatures they play in.
