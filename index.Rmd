@@ -16,8 +16,123 @@ library(spotifyr)
 library(tidyverse)
 library(flexdashboard)
 library(compmus)
+library(grid)
+library(gridExtra)
 #source('spotify.R')
 ```
+
+```{r echo = FALSE}
+# Set Spotify access variables (every time)
+Sys.setenv(SPOTIFY_CLIENT_ID = '29b7536b5f6f4f21a1e9075195a34105')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = 'e5d4ec6492a44dbf808852fb35d36923')
+```
+
+### Self-matrices based on timbre and pitches {data-commentary-width=400}
+```{r}
+make_self_similarity_matrix <- function(track_id, method="timbre"){
+track <- 
+  get_tidy_audio_analysis(track_id) %>% 
+  compmus_align(bars, segments) %>% 
+  select(bars) %>% unnest(bars) %>% 
+  mutate(
+    pitches = 
+      map(segments, 
+          compmus_summarise, pitches, 
+          method = 'rms', norm = 'euclidean')) %>% 
+  mutate(
+    timbre = 
+      map(segments, 
+          compmus_summarise, timbre, 
+          method = 'rms', norm = 'euclidean'))
+if(method == "cepstrum"){
+ plot <- track %>% 
+    compmus_gather_timbre %>% 
+    ggplot(
+      aes(
+        x = start + duration / 2, 
+        width = duration, 
+        y = basis, 
+        fill = value)) + 
+    geom_tile() +
+    labs(x = 'Time (s)', y = NULL, fill = 'Magnitude') +
+    scale_fill_viridis_c(option = 'E') +
+    theme_classic()
+  
+}
+
+if (method == "pitches"){
+  plot <- track %>% 
+    compmus_self_similarity(pitches, 'euclidean') %>% 
+    ggplot(
+      aes(
+        x = xstart + xduration / 2, 
+        width = xduration,
+        y = ystart + yduration / 2,
+        height = yduration,
+        fill = d)) + 
+    geom_tile() +
+    coord_fixed() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_classic() +
+    ggtitle("Pitch-based self-similarity matrix") +
+    labs(x = '', y = '')
+}
+
+if (method == "timbre"){
+  plot <- track %>% 
+  compmus_self_similarity(timbre, 'euclidean') %>% 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2, 
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d)) + 
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis_c(option = 'E', guide = 'none') +
+  theme_classic() +
+  ggtitle("Timbre-based self-similarity matrix") +
+  labs(x = '', y = '')
+}
+  return(plot)
+}
+
+hendrix_voodoo_timbre <- make_self_similarity_matrix('5rywNTqQPofdsof7f5gvY4', "timbre")
+hendrix_voodoo_pitches <- make_self_similarity_matrix('5rywNTqQPofdsof7f5gvY4', "pitches")
+
+mayer_wait_until_timbre <- make_self_similarity_matrix('5SSqUpMby3y8W0qy3JME5E', "timbre")
+mayer_wait_until_pitches <- make_self_similarity_matrix('5SSqUpMby3y8W0qy3JME5E', "pitches")
+
+srv_pnj_timbre <- make_self_similarity_matrix('4TqS8mahRles9lf97hZ49X', "timbre")
+srv_pnj_pitches <- make_self_similarity_matrix('4TqS8mahRles9lf97hZ49X', "pitches")
+```
+
+<div>
+```{r, fig.width=12, fig.height=8}
+grid.arrange(hendrix_voodoo_pitches, hendrix_voodoo_timbre, ncol=2, 
+top = textGrob("Jimi Hendrix - Voodoo Child (Slight Return) Live",gp=gpar(fontsize=28,font=1)))
+```
+</div>
+
+<div>
+```{r, fig.width=12, fig.height=8}
+grid.arrange(srv_pnj_pitches, srv_pnj_timbre, ncol=2, 
+top = textGrob("Stevie Ray Vaughan - Voodoo Child (Slight Return) Live",gp=gpar(fontsize=28,font=1)))
+```
+</div>
+
+<div>
+```{r, fig.width=12, fig.height=8}
+grid.arrange(mayer_wait_until_pitches, mayer_wait_until_timbre, ncol=2, 
+top = textGrob("John Mayer - Wait Until Tomorrow Live",gp=gpar(fontsize=28,font=1)))
+```
+</div>
+
+***
+
+The three plots on the left show the pitch-based and timbre-based self-similarity matrices for a performance of each artist. The plots for Jimi Hendrix show that there is not a real strict chorus-verse structure in his performance. This was the case in more recordings which makes it hard to draw conclusions from the plots. Stevie Ray Vaughan seems to follow some reoccurring structure. Especially in the timbre plot, there is a distinction between low and high energy areas. John Mayer has the most structured plots in which we can distinguish some verses and choruses. At around 100 seconds it even shows some diagonal dark lines which indicate similar sections. <br><br>
+When searching for songs to plot, there seemed to be a reoccurring problem of fuzzy plots. This is probably caused by the fact that the recordings are live. Especially the Jimi Hendrix performances are messy which makes it hard to really compare the artists. I will try to experiment with some different playlists in the coming week(s) to see if I can circumvent these problems.
 
 ### Introduction: Musical Copycats {data-commentary-width=400}
 <h1> What is this project about? </h1>
@@ -51,7 +166,7 @@ live_performances <-
 
 I wanted to show the amount of songs in each playlist but I could not render the value boxes for some reason. (I added the code so it is at least clear what I tried to do here)
 
-```{r , echo=TRUE}
+```{r , echo=FALSE}
 counts <- live_performances %>%
 group_by(playlist) %>% 
   summarize(
