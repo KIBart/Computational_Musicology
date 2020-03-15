@@ -30,220 +30,97 @@ Sys.setenv(SPOTIFY_CLIENT_SECRET = 'e5d4ec6492a44dbf808852fb35d36923')
 
 New Content {.storyboard}
 ============================================================================================
+### Comparing slow blues performances
 
-```{r}
-circshift <- function(v, n) {if (n == 0) v else c(tail(v, n), head(v, -n))}
+This week I took a look at three live performances of slow blues. The performances that were chosen are "Red House" by Jimi Hendrix, "Lenny" by Stevie Ray Vaughan and "Out of My Mind" by John Mayer. All these songs were performed and written by the artists themselves so it is a good way to compare them. "Redhouse" has a bpm of approximately 55, "Lenny" has a bpm of 45 and "Out of My Mind" has a bpm of 40. <br><br>
 
-# C     C#    D     Eb    E     F     F#    G     Ab    A     Bb    B 
-major_chord <- 
-  c(1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    0,    0)
-minor_chord <- 
-  c(1,    0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0)
-seventh_chord <- 
-  c(1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    0)
+<iframe src="https://open.spotify.com/embed/track/3Vs6cdkM3qIWItjoiiI5p2" width="333" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
 
-major_key <- 
-  c(6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88)
-minor_key <-
-  c(6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17)
-chord_templates <-
-  tribble(
-    ~name  , ~template,
-    'Gb:7'  , circshift(seventh_chord,  6),
-    'Gb:maj', circshift(major_chord,    6),
-    'Bb:min', circshift(minor_chord,   10),
-    'Db:maj', circshift(major_chord,    1),
-    'F:min' , circshift(minor_chord,    5),
-    'Ab:7'  , circshift(seventh_chord,  8),
-    'Ab:maj', circshift(major_chord,    8),
-    'C:min' , circshift(minor_chord,    0),
-    'Eb:7'  , circshift(seventh_chord,  3),
-    'Eb:maj', circshift(major_chord,    3),
-    'G:min' , circshift(minor_chord,    7),
-    'Bb:7'  , circshift(seventh_chord, 10),
-    'Bb:maj', circshift(major_chord,   10),
-    'D:min' , circshift(minor_chord,    2),
-    'F:7'   , circshift(seventh_chord,  5),
-    'F:maj' , circshift(major_chord,    5),
-    'A:min' , circshift(minor_chord,    9),
-    'C:7'   , circshift(seventh_chord,  0),
-    'C:maj' , circshift(major_chord,    0),
-    'E:min' , circshift(minor_chord,    4),
-    'G:7'   , circshift(seventh_chord,  7),
-    'G:maj' , circshift(major_chord,    7),
-    'B:min' , circshift(minor_chord,   11),
-    'D:7'   , circshift(seventh_chord,  2),
-    'D:maj' , circshift(major_chord,    2),
-    'F#:min', circshift(minor_chord,    6),
-    'A:7'   , circshift(seventh_chord,  9),
-    'A:maj' , circshift(major_chord,    9),
-    'C#:min', circshift(minor_chord,    1),
-    'E:7'   , circshift(seventh_chord,  4),
-    'E:maj' , circshift(major_chord,    4),
-    'G#:min', circshift(minor_chord,    8),
-    'B:7'   , circshift(seventh_chord, 11),
-    'B:maj' , circshift(major_chord,   11),
-    'D#:min', circshift(minor_chord,    3))
+<iframe src="https://open.spotify.com/embed/track/5w8Ti9LEgtN2wXnJ4W4qpI" width="333" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
 
-key_templates <-
-  tribble(
-    ~name    , ~template,
-    'Gb:maj', circshift(major_key,  6),
-    'Bb:min', circshift(minor_key, 10),
-    'Db:maj', circshift(major_key,  1),
-    'F:min' , circshift(minor_key,  5),
-    'Ab:maj', circshift(major_key,  8),
-    'C:min' , circshift(minor_key,  0),
-    'Eb:maj', circshift(major_key,  3),
-    'G:min' , circshift(minor_key,  7),
-    'Bb:maj', circshift(major_key, 10),
-    'D:min' , circshift(minor_key,  2),
-    'F:maj' , circshift(major_key,  5),
-    'A:min' , circshift(minor_key,  9),
-    'C:maj' , circshift(major_key,  0),
-    'E:min' , circshift(minor_key,  4),
-    'G:maj' , circshift(major_key,  7),
-    'B:min' , circshift(minor_key, 11),
-    'D:maj' , circshift(major_key,  2),
-    'F#:min', circshift(minor_key,  6),
-    'A:maj' , circshift(major_key,  9),
-    'C#:min', circshift(minor_key,  1),
-    'E:maj' , circshift(major_key,  4),
-    'G#:min', circshift(minor_key,  8),
-    'B:maj' , circshift(major_key, 11),
-    'D#:min', circshift(minor_key,  3))
+<iframe src="https://open.spotify.com/embed/track/5WMKS1iDfugyLhfibIlR51" width="333" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
 
-get_chordogram <- function(uri, chord_templates){
-  plot <- get_tidy_audio_analysis(uri) %>% 
-    compmus_align(bars, segments) %>% 
-    select(bars) %>% unnest(bars) %>% 
-    mutate(
-      pitches = 
-        map(segments, 
-            compmus_summarise, pitches, 
-            method = 'mean', norm = 'manhattan'))  %>% 
-    compmus_match_pitch_template(chord_templates, 'euclidean', 'manhattan') %>% 
-    ggplot(
-      aes(x = start + duration / 2, width = duration, y = name, fill = d)) +
-    geom_tile() +
-    scale_fill_viridis_c(option = 'E', guide = 'none') +
-    theme_minimal() +
-    labs(x = 'Time (s)', y = '')
-}
-
-get_keygram <- function(uri, key_templates){
-  plot <- get_tidy_audio_analysis(uri) %>% 
-    compmus_align(sections, segments) %>% 
-    select(sections) %>% unnest(sections) %>% 
-    mutate(
-      pitches = 
-        map(segments, 
-            compmus_summarise, pitches, 
-            method = 'mean', norm = 'manhattan'))  %>% 
-    compmus_match_pitch_template(chord_templates, 'euclidean', 'manhattan') %>% 
-    ggplot(
-      aes(x = start + duration / 2, width = duration, y = name, fill = d)) +
-    geom_tile() +
-    scale_fill_viridis_c(option = 'E', guide = 'none') +
-    theme_minimal() +
-    labs(x = 'Time (s)', y = '')
-}
-```
-
-### Jimi Hendrix' Bold as Love rhythm guitar causes key ambiguity {data-commentary-width=320}
+### Red House does not have a clear tempogram {data-commentary-width=320}
 
 <div>
-<h3>Chordogram</h3>
+<h3>Tempogram Red House (Live at The Woodstock Music & Art Fair, August 18, 1969)</h3>
 ```{r, out.width="100%", fig.width=15}
-boldhendrix_chords <- get_chordogram('0uco0wQkB909zpPlHvu5Cc', chord_templates)
-boldhendrix_chords
-```
-</div>
+redhouse <- 
+  get_tidy_audio_analysis('3Vs6cdkM3qIWItjoiiI5p2')
 
-<div>
-<h3>Keygram</h3>
-```{r, out.width="100%", fig.width=15}
-boldhendrix_keys <- get_chordogram('0uco0wQkB909zpPlHvu5Cc', key_templates)
-boldhendrix_keys
+tempo_redhouse <- redhouse %>% 
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE, bpms=30:150) %>% 
+  ggplot(aes(x = time, y = bpm, fill = power)) + 
+  geom_raster() + 
+  scale_fill_viridis_c(guide = 'none') +
+  labs(x = 'Time (s)', y = 'Tempo (BPM)') +
+  theme_classic()
+
+tempo_redhouse
 ```
 </div>
 
 
 ***
 
-<iframe src="https://open.spotify.com/embed/track/0uco0wQkB909zpPlHvu5Cc" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+<iframe src="https://open.spotify.com/embed/track/3Vs6cdkM3qIWItjoiiI5p2" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
 
-The keygram of Bold as Love from Jimi Hendrix does not indicate a clear key. What we can clearly see is that there is a fade-out in the end. The chords from the chordogram are also not very clear. This is probably caused by Hendrix' style of rhythm guitar which uses a lot of embellishments.
+We can see from this tempogram that the bpm cannot be clearly read from the plot. Red House has a bpm of 55 but in the plot a line around 110 can be seen. 
 
-### Which can also be seen in John Mayers version {data-commentary-width=320}
+### Lenny slows down mid song but speeds up slightly at the end {data-commentary-width=320}
+
 <div>
-<h3>Chordogram</h3>
+<h3>Tempogram Lenny (Live at The Spectrum, Montreal; August 17 1984)(Late Show)</h3>
 ```{r, out.width="100%", fig.width=15}
-boldmayer_chords <- get_chordogram('50DMG6AvtNzbrxMc62w6ph', chord_templates)
-boldmayer_chords
+lenny <- 
+  get_tidy_audio_analysis('5w8Ti9LEgtN2wXnJ4W4qpI')
+
+tempo_lenny <- lenny %>% 
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE, bpms=30:150) %>% 
+  ggplot(aes(x = time, y = bpm, fill = power)) + 
+  geom_raster() + 
+  scale_fill_viridis_c(guide = 'none') +
+  labs(x = 'Time (s)', y = 'Tempo (BPM)') +
+  theme_classic()
+
+tempo_lenny
 ```
 </div>
 
-<div>
-<h3>Keygram</h3>
-```{r, out.width="100%", fig.width=15}
-boldmayer_keys <- get_chordogram('50DMG6AvtNzbrxMc62w6ph', key_templates)
-boldmayer_keys
-```
-</div>
 
 ***
 
-<iframe src="https://open.spotify.com/embed/track/50DMG6AvtNzbrxMc62w6ph" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+<iframe src="https://open.spotify.com/embed/track/5w8Ti9LEgtN2wXnJ4W4qpI" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
 
-We see that this version of Bold as Love by John Mayer shows very much the same pattern as the version of Jimi Hendrix. We do see some sharper patterns that the Hendrix version which could be caused by the very different EQs of the versions. The Hendrix version has a darker sound quality to it while Mayers version is brighter.
+With this performance of Lennny some clear lines can be seen. A line around 100 and 45 can be seen which gradually goes down and back up again. This clear line is because there are very clear drums in this performance. The change of tempo correlates with the energy of the solo by Stevie Ray Vaughan.
 
-### All Along the Watchtower is less ambiguous because of the more straight forward rhythm section {data-commentary-width=320}
+### Out of My Mind clearly shows the tempo octaves and not the right bpm {data-commentary-width=320}
 
 <div>
-<h3>Chordogram</h3>
+<h3>Tempogram Out of My Mind (Live at the Nokia Theatre, Los Angeles, CA - December 2007)</h3>
 ```{r, out.width="100%", fig.width=15}
-watchhendrix_chords <- get_chordogram('2aoo2jlRnM3A0NyLQqMN2f', chord_templates)
-watchhendrix_chords
+outof <- 
+  get_tidy_audio_analysis('5WMKS1iDfugyLhfibIlR51')
+
+tempo_outof <- outof %>% 
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE, bpms=30:150) %>% 
+  ggplot(aes(x = time, y = bpm, fill = power)) + 
+  geom_raster() + 
+  scale_fill_viridis_c(guide = 'none') +
+  labs(x = 'Time (s)', y = 'Tempo (BPM)') +
+  theme_classic()
+
+tempo_outof
 ```
+
 </div>
-<div>
-<h3>Keygram</h3>
-```{r, out.width="100%", fig.width=15}
-watchhendrix_keys <- get_chordogram('2aoo2jlRnM3A0NyLQqMN2f', key_templates)
-watchhendrix_keys
-```
-</div>
+
 
 ***
 
-<iframe src="https://open.spotify.com/embed/track/2aoo2jlRnM3A0NyLQqMN2f" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+<iframe src="https://open.spotify.com/embed/track/5WMKS1iDfugyLhfibIlR51" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
 
-In this version of All Along the Watchtower by Jimi Hendrix we can clearly see chords and keys which are more distinct. The chords from the song are mainly Cm, Bb and Ab. It is noteable that Dmaj is dark throughout the whole song.
-
-### The same ambiguity arises with Stevie Ray Vaughans Little Wing {data-commentary-width=320}
-<div>
-<h3>Chordogram</h3>
-```{r, out.width="100%", fig.width=15}
-littlewing_chords <- get_chordogram('593SUshyuymkyDYbLVBMfr', chord_templates)
-littlewing_chords
-```
-</div>
-
-<div>
-<h3>Keygram</h3>
-```{r, out.width="100%", fig.width=15}
-littlewing_keys <- get_chordogram('593SUshyuymkyDYbLVBMfr', key_templates)
-littlewing_keys
-```
-</div>
-
-***
-
-<iframe src="https://open.spotify.com/embed/track/593SUshyuymkyDYbLVBMfr" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
-
-For this version from Little Wing by Stevie Ray Vaughan, we can see the same problems. No clear key can be found because of there is no rigid structure of chords in the background. From the chordogram we can see some reocurring chords including Gm and Bb7.
-
+This performance shows a clear line at 110 bpm. The actual bpm is around 40 so this is clearly the tempo octave.
 
 Introduction
 =============================================================================================
@@ -283,29 +160,29 @@ Row
 ----------------------------------------------------------------------------------------------------
 ```{r}
 counts <- live_performances %>%
-group_by(playlist) %>% 
+group_by(playlist) %>%
   summarize(
     count = n())
 ```
 
 ### Chart 1
 ```{r}
-valueBox(value=filter(counts, playlist == "Jimi Hendrix")[2], 
-         caption='live performances by Jimi Hendrix', 
+valueBox(value=filter(counts, playlist == "Jimi Hendrix")[2],
+         caption='live performances by Jimi Hendrix',
          icon = "ion-musical-notes-outline")
 ```
 
 ### Chart 2
 ```{r}
-valueBox(value=filter(counts, playlist == "John Mayer")[2], 
-         caption="live performances by John Mayer", 
+valueBox(value=filter(counts, playlist == "John Mayer")[2],
+         caption="live performances by John Mayer",
          icon = "ion-musical-notes-outline")
 ```
 
 ### Chart 3
 ```{r}
-valueBox(value=filter(counts, playlist == "Stevie Ray Vaughan")[2], 
-         caption = "live performances by Stevie Ray Vaughan", 
+valueBox(value=filter(counts, playlist == "Stevie Ray Vaughan")[2],
+         caption = "live performances by Stevie Ray Vaughan",
          icon = "ion-musical-notes-outline")
 ```
 
@@ -565,7 +442,218 @@ top = textGrob("John Mayer - Wait Until Tomorrow Live",gp=gpar(fontsize=28,font=
 The three plots on the left show the pitch-based and timbre-based self-similarity matrices for a performance of each artist. The plots for Jimi Hendrix show that there is not a real strict chorus-verse structure in his performance. This was the case in more recordings which makes it hard to draw conclusions from the plots. Stevie Ray Vaughan seems to follow some reoccurring structure. Especially in the timbre plot, there is a distinction between low and high energy areas. John Mayer has the most structured plots in which we can distinguish some verses and choruses. At around 100 seconds it even shows some diagonal dark lines which indicate similar sections. <br><br>
 When searching for songs to plot, there seemed to be a reoccurring problem of fuzzy plots. This is probably caused by the fact that the recordings are live. Especially the Jimi Hendrix performances are messy which makes it hard to really compare the artists. I will try to experiment with some different playlists in the coming week(s) to see if I can circumvent these problems.
 
+```{r}
+circshift <- function(v, n) {if (n == 0) v else c(tail(v, n), head(v, -n))}
 
+# C     C#    D     Eb    E     F     F#    G     Ab    A     Bb    B
+major_chord <-
+  c(1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    0,    0)
+minor_chord <-
+  c(1,    0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0)
+seventh_chord <-
+  c(1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    0)
+
+major_key <-
+  c(6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88)
+minor_key <-
+  c(6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17)
+chord_templates <-
+  tribble(
+    ~name  , ~template,
+    'Gb:7'  , circshift(seventh_chord,  6),
+    'Gb:maj', circshift(major_chord,    6),
+    'Bb:min', circshift(minor_chord,   10),
+    'Db:maj', circshift(major_chord,    1),
+    'F:min' , circshift(minor_chord,    5),
+    'Ab:7'  , circshift(seventh_chord,  8),
+    'Ab:maj', circshift(major_chord,    8),
+    'C:min' , circshift(minor_chord,    0),
+    'Eb:7'  , circshift(seventh_chord,  3),
+    'Eb:maj', circshift(major_chord,    3),
+    'G:min' , circshift(minor_chord,    7),
+    'Bb:7'  , circshift(seventh_chord, 10),
+    'Bb:maj', circshift(major_chord,   10),
+    'D:min' , circshift(minor_chord,    2),
+    'F:7'   , circshift(seventh_chord,  5),
+    'F:maj' , circshift(major_chord,    5),
+    'A:min' , circshift(minor_chord,    9),
+    'C:7'   , circshift(seventh_chord,  0),
+    'C:maj' , circshift(major_chord,    0),
+    'E:min' , circshift(minor_chord,    4),
+    'G:7'   , circshift(seventh_chord,  7),
+    'G:maj' , circshift(major_chord,    7),
+    'B:min' , circshift(minor_chord,   11),
+    'D:7'   , circshift(seventh_chord,  2),
+    'D:maj' , circshift(major_chord,    2),
+    'F#:min', circshift(minor_chord,    6),
+    'A:7'   , circshift(seventh_chord,  9),
+    'A:maj' , circshift(major_chord,    9),
+    'C#:min', circshift(minor_chord,    1),
+    'E:7'   , circshift(seventh_chord,  4),
+    'E:maj' , circshift(major_chord,    4),
+    'G#:min', circshift(minor_chord,    8),
+    'B:7'   , circshift(seventh_chord, 11),
+    'B:maj' , circshift(major_chord,   11),
+    'D#:min', circshift(minor_chord,    3))
+
+key_templates <-
+  tribble(
+    ~name    , ~template,
+    'Gb:maj', circshift(major_key,  6),
+    'Bb:min', circshift(minor_key, 10),
+    'Db:maj', circshift(major_key,  1),
+    'F:min' , circshift(minor_key,  5),
+    'Ab:maj', circshift(major_key,  8),
+    'C:min' , circshift(minor_key,  0),
+    'Eb:maj', circshift(major_key,  3),
+    'G:min' , circshift(minor_key,  7),
+    'Bb:maj', circshift(major_key, 10),
+    'D:min' , circshift(minor_key,  2),
+    'F:maj' , circshift(major_key,  5),
+    'A:min' , circshift(minor_key,  9),
+    'C:maj' , circshift(major_key,  0),
+    'E:min' , circshift(minor_key,  4),
+    'G:maj' , circshift(major_key,  7),
+    'B:min' , circshift(minor_key, 11),
+    'D:maj' , circshift(major_key,  2),
+    'F#:min', circshift(minor_key,  6),
+    'A:maj' , circshift(major_key,  9),
+    'C#:min', circshift(minor_key,  1),
+    'E:maj' , circshift(major_key,  4),
+    'G#:min', circshift(minor_key,  8),
+    'B:maj' , circshift(major_key, 11),
+    'D#:min', circshift(minor_key,  3))
+
+get_chordogram <- function(uri, chord_templates){
+  plot <- get_tidy_audio_analysis(uri) %>%
+    compmus_align(bars, segments) %>%
+    select(bars) %>% unnest(bars) %>%
+    mutate(
+      pitches =
+        map(segments,
+            compmus_summarise, pitches,
+            method = 'mean', norm = 'manhattan'))  %>%
+    compmus_match_pitch_template(chord_templates, 'euclidean', 'manhattan') %>%
+    ggplot(
+      aes(x = start + duration / 2, width = duration, y = name, fill = d)) +
+    geom_tile() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_minimal() +
+    labs(x = 'Time (s)', y = '')
+}
+
+get_keygram <- function(uri, key_templates){
+  plot <- get_tidy_audio_analysis(uri) %>%
+    compmus_align(sections, segments) %>%
+    select(sections) %>% unnest(sections) %>%
+    mutate(
+      pitches =
+        map(segments,
+            compmus_summarise, pitches,
+            method = 'mean', norm = 'manhattan'))  %>%
+    compmus_match_pitch_template(chord_templates, 'euclidean', 'manhattan') %>%
+    ggplot(
+      aes(x = start + duration / 2, width = duration, y = name, fill = d)) +
+    geom_tile() +
+    scale_fill_viridis_c(option = 'E', guide = 'none') +
+    theme_minimal() +
+    labs(x = 'Time (s)', y = '')
+}
+```
+
+### Jimi Hendrix' Bold as Love rhythm guitar causes key ambiguity {data-commentary-width=320}
+
+<div>
+<h3>Chordogram</h3>
+```{r, out.width="100%", fig.width=15}
+boldhendrix_chords <- get_chordogram('0uco0wQkB909zpPlHvu5Cc', chord_templates)
+boldhendrix_chords
+```
+</div>
+
+<div>
+<h3>Keygram</h3>
+```{r, out.width="100%", fig.width=15}
+boldhendrix_keys <- get_chordogram('0uco0wQkB909zpPlHvu5Cc', key_templates)
+boldhendrix_keys
+```
+</div>
+
+
+***
+
+<iframe src="https://open.spotify.com/embed/track/0uco0wQkB909zpPlHvu5Cc" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+
+The keygram of Bold as Love from Jimi Hendrix does not indicate a clear key. What we can clearly see is that there is a fade-out in the end. The chords from the chordogram are also not very clear. This is probably caused by Hendrix' style of rhythm guitar which uses a lot of embellishments.
+
+### Which can also be seen in John Mayers version {data-commentary-width=320}
+<div>
+<h3>Chordogram</h3>
+```{r, out.width="100%", fig.width=15}
+boldmayer_chords <- get_chordogram('50DMG6AvtNzbrxMc62w6ph', chord_templates)
+boldmayer_chords
+```
+</div>
+
+<div>
+<h3>Keygram</h3>
+```{r, out.width="100%", fig.width=15}
+boldmayer_keys <- get_chordogram('50DMG6AvtNzbrxMc62w6ph', key_templates)
+boldmayer_keys
+```
+</div>
+
+***
+
+<iframe src="https://open.spotify.com/embed/track/50DMG6AvtNzbrxMc62w6ph" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+
+We see that this version of Bold as Love by John Mayer shows very much the same pattern as the version of Jimi Hendrix. We do see some sharper patterns that the Hendrix version which could be caused by the very different EQs of the versions. The Hendrix version has a darker sound quality to it while Mayers version is brighter.
+
+### All Along the Watchtower is less ambiguous because of the more straight forward rhythm section {data-commentary-width=320}
+
+<div>
+<h3>Chordogram</h3>
+```{r, out.width="100%", fig.width=15}
+watchhendrix_chords <- get_chordogram('2aoo2jlRnM3A0NyLQqMN2f', chord_templates)
+watchhendrix_chords
+```
+</div>
+<div>
+<h3>Keygram</h3>
+```{r, out.width="100%", fig.width=15}
+watchhendrix_keys <- get_chordogram('2aoo2jlRnM3A0NyLQqMN2f', key_templates)
+watchhendrix_keys
+```
+</div>
+
+***
+
+<iframe src="https://open.spotify.com/embed/track/2aoo2jlRnM3A0NyLQqMN2f" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+
+In this version of All Along the Watchtower by Jimi Hendrix we can clearly see chords and keys which are more distinct. The chords from the song are mainly Cm, Bb and Ab. It is noteable that Dmaj is dark throughout the whole song.
+
+### The same ambiguity arises with Stevie Ray Vaughans Little Wing {data-commentary-width=320}
+<div>
+<h3>Chordogram</h3>
+```{r, out.width="100%", fig.width=15}
+littlewing_chords <- get_chordogram('593SUshyuymkyDYbLVBMfr', chord_templates)
+littlewing_chords
+```
+</div>
+
+<div>
+<h3>Keygram</h3>
+```{r, out.width="100%", fig.width=15}
+littlewing_keys <- get_chordogram('593SUshyuymkyDYbLVBMfr', key_templates)
+littlewing_keys
+```
+</div>
+
+***
+
+<iframe src="https://open.spotify.com/embed/track/593SUshyuymkyDYbLVBMfr" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+
+For this version from Little Wing by Stevie Ray Vaughan, we can see the same problems. No clear key can be found because of there is no rigid structure of chords in the background. From the chordogram we can see some reocurring chords including Gm and Bb7.
 
 Discussion
 ==============================================================================================
