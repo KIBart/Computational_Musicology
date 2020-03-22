@@ -13,9 +13,12 @@ output:
 library(tidyverse)
 library(ggplot2)
 library(spotifyr)
-library(tidyverse)
 library(flexdashboard)
 library(compmus)
+library(tidymodels)
+library(protoclust)
+library(ggdendro)
+library(heatmaply)
 library(grid)
 library(gridExtra)
 #source('spotify.R')
@@ -30,97 +33,162 @@ Sys.setenv(SPOTIFY_CLIENT_SECRET = 'e5d4ec6492a44dbf808852fb35d36923')
 
 New Content {.storyboard}
 ============================================================================================
-### Comparing slow blues performances
 
-This week I took a look at three live performances of slow blues. The performances that were chosen are "Red House" by Jimi Hendrix, "Lenny" by Stevie Ray Vaughan and "Out of My Mind" by John Mayer. All these songs were performed and written by the artists themselves so it is a good way to compare them. "Redhouse" has a bpm of approximately 55, "Lenny" has a bpm of 45 and "Out of My Mind" has a bpm of 40. <br><br>
+```{r}
+jimi <- 
+    get_playlist_audio_features('bartderooij2009', '6XJ7cPe4XJTu4debuDld7R') %>% 
+    #slice(1:50) %>% 
+    add_audio_analysis
+srv <- 
+    get_playlist_audio_features('bartderooij2009', '4q24CEb8kFE6HadhZSXinh') %>% 
+    #slice(1:50) %>% 
+    add_audio_analysis
+mayer <- 
+    get_playlist_audio_features('bartderooij2009', '6e36IvL6S5cESz1yNTQRqa') %>% 
+    #slice(1:50) %>% 
+    add_audio_analysis
 
-<iframe src="https://open.spotify.com/embed/track/3Vs6cdkM3qIWItjoiiI5p2" width="333" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+# Combine playlists
+cats <- 
+    jimi %>% mutate(playlist = "Jimi Hendrix") %>% 
+    bind_rows(
+        srv %>% mutate(playlist = "Stevie Ray Vaughan"),
+        mayer %>% mutate(playlist = "John Mayer")) %>% 
+    mutate(playlist = factor(playlist)) %>% 
+    mutate(
+        segments = 
+            map2(segments, key, compmus_c_transpose)) %>% 
+    mutate(
+        pitches = 
+            map(segments, 
+                compmus_summarise, pitches, 
+                method = 'mean', norm = 'manhattan'),
+        timbre =
+            map(
+                segments,
+                compmus_summarise, timbre,
+                method = 'mean')) %>% 
+    mutate(pitches = map(pitches, compmus_normalise, 'clr')) %>% 
+    mutate_at(vars(pitches, timbre), map, bind_rows) %>% 
+    unnest(cols = c(pitches, timbre))
+```
 
-<iframe src="https://open.spotify.com/embed/track/5w8Ti9LEgtN2wXnJ4W4qpI" width="333" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
 
-<iframe src="https://open.spotify.com/embed/track/5WMKS1iDfugyLhfibIlR51" width="333" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+```{r}
+cats_class <- 
+    recipe(playlist ~
+               danceability +
+               energy +
+               loudness +
+               speechiness +
+               acousticness +
+               instrumentalness +
+               liveness +
+               valence +
+               tempo +
+               duration +
+               C + `C#|Db` + D + `D#|Eb` +
+               E + `F` + `F#|Gb` + G +
+               `G#|Ab` + A + `A#|Bb` + B +
+               c01 + c02 + c03 + c04 + c05 + c06 +
+               c07 + c08 + c09 + c10 + c11 + c12,
+           data = cats) %>% 
+    step_center(all_predictors()) %>%
+    step_scale(all_predictors()) %>%
+    # step_range(all_predictors()) %>% 
+    prep(cats) %>% 
+    juice
 
-### Red House does not have a clear tempogram {data-commentary-width=320}
+cats_cv <- cats_class %>% vfold_cv(5)
 
+cats_knn <- 
+    nearest_neighbor(mode = 'classification', neighbors = 1) %>% 
+    set_engine('kknn')
+predict_knn <- function(split)
+    fit(cats_knn, playlist ~ ., data = analysis(split)) %>% 
+    predict(assessment(split), type = 'class') %>%
+    bind_cols(assessment(split))
+```
+
+### Using Random Forest we can determine the most important features {data-commentary-width=400}
+
+```{r}
+cats_forest <- 
+    rand_forest(mode = 'classification') %>% 
+    set_engine('randomForest')
+predict_forest <- function(split)
+    fit(cats_forest, playlist ~ ., data = analysis(split)) %>% 
+    predict(assessment(split), type = 'class') %>%
+    bind_cols(assessment(split))
+
+forest_table <- cats_cv %>% 
+    mutate(pred = map(splits, predict_forest)) %>% 
+    unnest(pred) %>% 
+    metric_set(accuracy, kap, j_index)(truth = playlist, estimate = .pred_class)
+```
 <div>
-<h3>Tempogram Red House (Live at The Woodstock Music & Art Fair, August 18, 1969)</h3>
-```{r, out.width="100%", fig.width=15}
-redhouse <- 
-  get_tidy_audio_analysis('3Vs6cdkM3qIWItjoiiI5p2')
-
-tempo_redhouse <- redhouse %>% 
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE, bpms=30:150) %>% 
-  ggplot(aes(x = time, y = bpm, fill = power)) + 
-  geom_raster() + 
-  scale_fill_viridis_c(guide = 'none') +
-  labs(x = 'Time (s)', y = 'Tempo (BPM)') +
-  theme_classic()
-
-tempo_redhouse
+```{r}
+cats_class %>% 
+    fit(cats_forest, playlist ~ ., data = .) %>% 
+    pluck('fit') %>% 
+    randomForest::varImpPlot()
 ```
 </div>
 
-
-***
-
-<iframe src="https://open.spotify.com/embed/track/3Vs6cdkM3qIWItjoiiI5p2" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
-
-We can see from this tempogram that the bpm cannot be clearly read from the plot. Red House has a bpm of 55 but in the plot a line around 110 can be seen. 
-
-### Lenny slows down mid song but speeds up slightly at the end {data-commentary-width=320}
-
 <div>
-<h3>Tempogram Lenny (Live at The Spectrum, Montreal; August 17 1984)(Late Show)</h3>
-```{r, out.width="100%", fig.width=15}
-lenny <- 
-  get_tidy_audio_analysis('5w8Ti9LEgtN2wXnJ4W4qpI')
-
-tempo_lenny <- lenny %>% 
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE, bpms=30:150) %>% 
-  ggplot(aes(x = time, y = bpm, fill = power)) + 
-  geom_raster() + 
-  scale_fill_viridis_c(guide = 'none') +
-  labs(x = 'Time (s)', y = 'Tempo (BPM)') +
-  theme_classic()
-
-tempo_lenny
+```{r}
+forest_table
 ```
 </div>
 
-
 ***
 
-<iframe src="https://open.spotify.com/embed/track/5w8Ti9LEgtN2wXnJ4W4qpI" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+With the data a random forest was made which gives us the best-quality ranking of feature importance. We see that timbre components c01, c02 and c08, loudness, speechiness and danceability are the most important features. The accuracy, Cohen's kappa and the J-measure are still not very high as can be seen from the table.
 
-With this performance of Lennny some clear lines can be seen. A line around 100 and 45 can be seen which gradually goes down and back up again. This clear line is because there are very clear drums in this performance. The change of tempo correlates with the energy of the solo by Stevie Ray Vaughan.
+### The found features lead to good K nearest neighbour predictions for Mayer and Stevie Ray Vaughan {data-commentary-width=400}
 
-### Out of My Mind clearly shows the tempo octaves and not the right bpm {data-commentary-width=320}
-
-<div>
-<h3>Tempogram Out of My Mind (Live at the Nokia Theatre, Los Angeles, CA - December 2007)</h3>
-```{r, out.width="100%", fig.width=15}
-outof <- 
-  get_tidy_audio_analysis('5WMKS1iDfugyLhfibIlR51')
-
-tempo_outof <- outof %>% 
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE, bpms=30:150) %>% 
-  ggplot(aes(x = time, y = bpm, fill = power)) + 
-  geom_raster() + 
-  scale_fill_viridis_c(guide = 'none') +
-  labs(x = 'Time (s)', y = 'Tempo (BPM)') +
-  theme_classic()
-
-tempo_outof
+```{r}
+predict_knn_reduced <- function(split)
+    fit(
+        cats_knn, 
+        playlist ~ c02 + loudness + speechiness + c08 + c01 + danceability, 
+        data = analysis(split)) %>% 
+    predict(assessment(split), type = 'class') %>%
+    bind_cols(assessment(split))
+cats_cv %>% 
+    mutate(pred = map(splits, predict_knn_reduced)) %>% unnest(pred) %>% 
+    metric_set(accuracy, kap, j_index)(truth = playlist, estimate = .pred_class)
 ```
 
-</div>
-
+```{r}
+cats_cv %>% 
+    mutate(pred = map(splits, predict_knn_reduced)) %>% unnest(pred) %>% 
+    conf_mat(truth = playlist, estimate = .pred_class) %>% 
+    autoplot(type = 'heatmap')
+```
 
 ***
 
-<iframe src="https://open.spotify.com/embed/track/5WMKS1iDfugyLhfibIlR51" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+The "elbow" in the previous plot indicates that the most important features are c01, c02 and c08, loudness, speechiness and danceability. As can be seen from the heat map, the predictions for John Mayer and Stevie Ray Vaughan are mostly correct. We see that there is more similarity for John Mayer and Stevie Ray Vaughan to Jimi Hendrix than to eachother. The predictions for Jimi Hendrix are not very accurate which indicates that some John Mayer and Stevie Ray Vaughan songs are similar.
 
-This performance shows a clear line at 110 bpm. The actual bpm is around 40 so this is clearly the tempo octave.
+
+### And plot the songs using the new features {data-commentary-width=400}
+```{r}
+cats %>%
+    ggplot(aes(x = c02, y = loudness, colour = playlist, size = c08)) +
+    geom_point(alpha = 0.6) +
+    scale_color_brewer(type = 'qual', palette = 'Accent') +
+    labs(
+        x = 'Timbre Component 2', 
+        y = 'Loudness', 
+        size = 'Timbre Component 8', 
+        colour = 'Playlist'
+    )
+```
+
+***
+
+From this plot we see that there is a better distinction between the three artist but that there is definitely some overlap.
 
 Introduction
 =============================================================================================
@@ -654,6 +722,98 @@ littlewing_keys
 <iframe src="https://open.spotify.com/embed/track/593SUshyuymkyDYbLVBMfr" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
 
 For this version from Little Wing by Stevie Ray Vaughan, we can see the same problems. No clear key can be found because of there is no rigid structure of chords in the background. From the chordogram we can see some reocurring chords including Gm and Bb7.
+
+### Comparing slow blues performances
+
+This week I took a look at three live performances of slow blues. The performances that were chosen are "Red House" by Jimi Hendrix, "Lenny" by Stevie Ray Vaughan and "Out of My Mind" by John Mayer. All these songs were performed and written by the artists themselves so it is a good way to compare them. "Redhouse" has a bpm of approximately 55, "Lenny" has a bpm of 45 and "Out of My Mind" has a bpm of 40. <br><br>
+
+<iframe src="https://open.spotify.com/embed/track/3Vs6cdkM3qIWItjoiiI5p2" width="333" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+
+<iframe src="https://open.spotify.com/embed/track/5w8Ti9LEgtN2wXnJ4W4qpI" width="333" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+
+<iframe src="https://open.spotify.com/embed/track/5WMKS1iDfugyLhfibIlR51" width="333" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+
+### Red House does not have a clear tempogram {data-commentary-width=320}
+
+<div>
+<h3>Tempogram Red House (Live at The Woodstock Music & Art Fair, August 18, 1969)</h3>
+```{r, out.width="100%", fig.width=15}
+redhouse <- 
+  get_tidy_audio_analysis('3Vs6cdkM3qIWItjoiiI5p2')
+
+tempo_redhouse <- redhouse %>% 
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE, bpms=30:150) %>% 
+  ggplot(aes(x = time, y = bpm, fill = power)) + 
+  geom_raster() + 
+  scale_fill_viridis_c(guide = 'none') +
+  labs(x = 'Time (s)', y = 'Tempo (BPM)') +
+  theme_classic()
+
+tempo_redhouse
+```
+</div>
+
+
+***
+
+<iframe src="https://open.spotify.com/embed/track/3Vs6cdkM3qIWItjoiiI5p2" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+
+We can see from this tempogram that the bpm cannot be clearly read from the plot. Red House has a bpm of 55 but in the plot a line around 110 can be seen. 
+
+### Lenny slows down mid song but speeds up slightly at the end {data-commentary-width=320}
+
+<div>
+<h3>Tempogram Lenny (Live at The Spectrum, Montreal; August 17 1984)(Late Show)</h3>
+```{r, out.width="100%", fig.width=15}
+lenny <- 
+  get_tidy_audio_analysis('5w8Ti9LEgtN2wXnJ4W4qpI')
+
+tempo_lenny <- lenny %>% 
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE, bpms=30:150) %>% 
+  ggplot(aes(x = time, y = bpm, fill = power)) + 
+  geom_raster() + 
+  scale_fill_viridis_c(guide = 'none') +
+  labs(x = 'Time (s)', y = 'Tempo (BPM)') +
+  theme_classic()
+
+tempo_lenny
+```
+</div>
+
+
+***
+
+<iframe src="https://open.spotify.com/embed/track/5w8Ti9LEgtN2wXnJ4W4qpI" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+
+With this performance of Lennny some clear lines can be seen. A line around 100 and 45 can be seen which gradually goes down and back up again. This clear line is because there are very clear drums in this performance. The change of tempo correlates with the energy of the solo by Stevie Ray Vaughan.
+
+### Out of My Mind clearly shows the tempo octaves and not the right bpm {data-commentary-width=320}
+
+<div>
+<h3>Tempogram Out of My Mind (Live at the Nokia Theatre, Los Angeles, CA - December 2007)</h3>
+```{r, out.width="100%", fig.width=15}
+outof <- 
+  get_tidy_audio_analysis('5WMKS1iDfugyLhfibIlR51')
+
+tempo_outof <- outof %>% 
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE, bpms=30:150) %>% 
+  ggplot(aes(x = time, y = bpm, fill = power)) + 
+  geom_raster() + 
+  scale_fill_viridis_c(guide = 'none') +
+  labs(x = 'Time (s)', y = 'Tempo (BPM)') +
+  theme_classic()
+
+tempo_outof
+```
+
+</div>
+
+
+***
+
+<iframe src="https://open.spotify.com/embed/track/5WMKS1iDfugyLhfibIlR51" width="300" height="380" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+
+This performance shows a clear line at 110 bpm. The actual bpm is around 40 so this is clearly the tempo octave.
 
 Discussion
 ==============================================================================================
